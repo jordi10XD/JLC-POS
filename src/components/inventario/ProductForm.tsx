@@ -14,7 +14,7 @@ interface Product {
   stock_minimo: number;
 }
 
-export function ProductForm({ categories, initialData, onClose }: { categories: string[], initialData?: Product, onClose: () => void }) {
+export function ProductForm({ categories, initialData, userRole, onClose }: { categories: string[], initialData?: Product, userRole: "admin" | "vendedor", onClose: () => void }) {
   const [state, formAction, isPending] = useActionState(upsertProduct, null);
   const [typedCategory, setTypedCategory] = useState(initialData?.categoria || "");
 
@@ -30,6 +30,11 @@ export function ProductForm({ categories, initialData, onClose }: { categories: 
         </h2>
         
         <form action={formAction} className="space-y-4">
+          {state?.error && (
+            <div className="bg-red-500/10 border-l-4 border-red-500 p-3 mb-4 rounded flex items-center gap-3 animate-bounce">
+              <span className="text-red-500 font-mono text-xs uppercase">ERROR: {state.error}</span>
+            </div>
+          )}
           {initialData?.id && <input type="hidden" name="id" value={initialData.id} />}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -61,13 +66,23 @@ export function ProductForm({ categories, initialData, onClose }: { categories: 
 
             <div className="flex flex-col gap-1">
               <label className="text-xs font-mono text-[#00f2fe]/70 uppercase">P. Mínimo ($)</label>
-              <input name="precio_minimo" type="number" step="0.01" defaultValue={initialData?.precio_minimo} required className="cyber-input p-2 rounded text-sm" />
+              <input 
+                name="precio_minimo" 
+                type="number" 
+                step="0.01" 
+                defaultValue={initialData?.precio_minimo} 
+                disabled={userRole !== "admin"}
+                required={userRole === "admin"}
+                className={`cyber-input p-2 rounded text-sm ${userRole !== "admin" ? "opacity-50 cursor-not-allowed bg-white/5" : ""}`} 
+              />
             </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-mono text-[#ff5500]/70 uppercase">P. Compra ($)</label>
-              <input name="precio_compra" type="number" step="0.01" defaultValue={initialData?.precio_compra} required className="cyber-input border-[#ff5500]/30 focus:border-[#ff5500] p-2 rounded text-sm" />
-            </div>
+            {userRole === "admin" && (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-mono text-[#ff5500]/70 uppercase">P. Compra ($)</label>
+                <input name="precio_compra" type="number" step="0.01" defaultValue={initialData?.precio_compra} className="cyber-input border-[#ff5500]/30 focus:border-[#ff5500] p-2 rounded text-sm" />
+              </div>
+            )}
             
             <div className="flex flex-col gap-1"></div> {/* Spacer */}
 

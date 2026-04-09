@@ -65,7 +65,7 @@ export function VentasTerminal({ products, userId }: { products: Product[], user
     const itemIndex = newCart.findIndex(i => i.cart_id === cart_id);
     if (itemIndex >= 0) {
       // Regateo validación frontend
-      newCart[itemIndex].precio_final_cobrado = Math.max(numPrice, newCart[itemIndex].precio_minimo);
+      newCart[itemIndex].precio_final_cobrado = Math.max(numPrice, newCart[itemIndex].precio_minimo ?? 0);
       setCart(newCart);
     }
   };
@@ -152,7 +152,7 @@ export function VentasTerminal({ products, userId }: { products: Product[], user
                 </div>
                 
                 <div className="flex flex-col text-xs text-right flex-1 gap-1">
-                  <span className="text-gray-500">Mín: ${item.precio_minimo.toFixed(2)}</span>
+                  <span className="text-gray-500">Mín: ${item.precio_minimo?.toFixed(2) ?? "0.00"}</span>
                   <div className="flex items-center justify-end gap-1">
                     <span className="text-[#00f2fe]">C/U: $</span>
                     <input 

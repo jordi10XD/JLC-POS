@@ -62,14 +62,12 @@ export function InventoryClient({
             {categories.map(cat => <option key={cat} value={cat}>{cat.toUpperCase()}</option>)}
           </select>
 
-          {userRole === "admin" && (
-            <button 
-              onClick={() => { setEditingProduct(null); setIsFormOpen(true); }}
-              className="cyber-button flex items-center justify-center gap-2 px-4 py-2 rounded whitespace-nowrap w-full sm:w-auto"
-            >
-              <Plus className="w-4 h-4" /> CREAR
-            </button>
-          )}
+          <button 
+            onClick={() => { setEditingProduct(null); setIsFormOpen(true); }}
+            className="cyber-button flex items-center justify-center gap-2 px-4 py-2 rounded whitespace-nowrap w-full sm:w-auto"
+          >
+            <Plus className="w-4 h-4" /> CREAR
+          </button>
         </div>
       </div>
 
@@ -86,7 +84,7 @@ export function InventoryClient({
                  <th className="p-4 border-b border-[#ff5500]/30 text-right text-[#ff5500]">Costo</th>
               )}
               <th className="p-4 border-b border-[#00f2fe]/20 text-right">Stock</th>
-              {userRole === "admin" && <th className="p-4 border-b border-[#00f2fe]/20 text-center">Acciones</th>}
+              <th className="p-4 border-b border-[#00f2fe]/20 text-center">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -97,26 +95,29 @@ export function InventoryClient({
                   <td className="p-4 flex items-center gap-2">
                     {lowStock && <AlertTriangle className="w-4 h-4 text-red-500 animate-pulse" />}
                     {p.nombre}
+                    {userRole === "admin" && (p.precio_compra === null || p.precio_compra === undefined) && (
+                      <span className="text-[10px] bg-red-500/20 text-red-500 px-1.5 py-0.5 rounded border border-red-500/30 animate-pulse">
+                        FALTA COSTO
+                      </span>
+                    )}
                   </td>
                   <td className="p-4 text-gray-400">{p.categoria}</td>
-                  <td className="p-4 text-right">${p.precio_venta.toFixed(2)}</td>
-                  <td className="p-4 text-right text-gray-500">${p.precio_minimo.toFixed(2)}</td>
+                  <td className="p-4 text-right text-gray-400">${p.precio_venta.toFixed(2)}</td>
+                  <td className="p-4 text-right text-gray-500">${p.precio_minimo?.toFixed(2) ?? "0.00"}</td>
                   {userRole === "admin" && (
                     <td className="p-4 text-right text-[#ff5500]/80">${p.precio_compra?.toFixed(2)}</td>
                   )}
                   <td className={`p-4 text-right font-bold ${lowStock ? 'text-red-500' : 'text-[#00f2fe]'}`}>
                     {p.stock_actual}
                   </td>
-                  {userRole === "admin" && (
-                    <td className="p-4 text-center">
-                      <button 
-                        onClick={() => { setEditingProduct(p); setIsFormOpen(true); }}
-                        className="text-[#00f2fe]/60 hover:text-[#00f2fe] transition-colors"
-                      >
-                        <Edit2 className="w-4 h-4 inline" />
-                      </button>
-                    </td>
-                  )}
+                  <td className="p-4 text-center">
+                    <button 
+                      onClick={() => { setEditingProduct(p); setIsFormOpen(true); }}
+                      className="text-[#00f2fe]/60 hover:text-[#00f2fe] transition-colors"
+                    >
+                      <Edit2 className="w-4 h-4 inline" />
+                    </button>
+                  </td>
                 </tr>
               )
             })}
@@ -131,9 +132,14 @@ export function InventoryClient({
               <div key={p.id} className={`cyber-panel p-4 rounded-lg flex flex-col gap-2 relative ${lowStock ? 'border-[#ff5500]/40 bg-[#ff5500]/5' : ''}`}>
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-mono text-white text-sm font-bold flex items-center gap-2">
+                    <h3 className="font-mono text-white text-sm font-bold flex flex-wrap items-center gap-2">
                       {lowStock && <AlertTriangle className="w-4 h-4 text-red-500 animate-pulse" />}
                       {p.nombre}
+                      {userRole === "admin" && (p.precio_compra === null || p.precio_compra === undefined) && (
+                        <span className="text-[8px] bg-red-500/20 text-red-500 px-1 py-0.5 rounded border border-red-500/30">
+                          FALTA COSTO
+                        </span>
+                      )}
                     </h3>
                     <p className="text-[10px] font-mono text-[#00f2fe]/60 uppercase">{p.categoria}</p>
                   </div>
@@ -152,7 +158,7 @@ export function InventoryClient({
                   </div>
                   <div>
                     <p className="text-[10px] text-gray-500 uppercase">Precio Mínimo</p>
-                    <p className="font-mono text-white/50 text-sm">${p.precio_minimo.toFixed(2)}</p>
+                    <p className="font-mono text-white/50 text-sm">${p.precio_minimo?.toFixed(2) ?? "0.00"}</p>
                   </div>
                   {userRole === "admin" && (
                     <div className="col-span-2">
@@ -162,14 +168,12 @@ export function InventoryClient({
                   )}
                 </div>
 
-                {userRole === "admin" && (
-                  <button 
-                    onClick={() => { setEditingProduct(p); setIsFormOpen(true); }}
-                    className="absolute bottom-4 right-4 text-[#00f2fe]/60 hover:text-[#00f2fe] p-2"
-                  >
-                    <Edit2 className="w-5 h-5 line" />
-                  </button>
-                )}
+                <button 
+                  onClick={() => { setEditingProduct(p); setIsFormOpen(true); }}
+                  className="absolute bottom-4 right-4 text-[#00f2fe]/60 hover:text-[#00f2fe] p-2"
+                >
+                  <Edit2 className="w-5 h-5 line" />
+                </button>
               </div>
             );
           })}
@@ -185,7 +189,8 @@ export function InventoryClient({
       {isFormOpen && (
         <ProductForm 
           categories={categories} 
-          initialData={editingProduct || undefined} 
+          initialData={editingProduct || undefined}
+          userRole={userRole}
           onClose={() => setIsFormOpen(false)} 
         />
       )}

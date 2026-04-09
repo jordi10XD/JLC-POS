@@ -9,26 +9,34 @@ export async function upsertProduct(prevState: any, formData: FormData) {
   if (!user) return { error: "No autorizado" };
 
   const { data: perfil } = await supabase.from("perfiles").select("rol").eq("id", user.id).single();
-  if (perfil?.rol !== "admin") return { error: "Permiso denegado" };
+  const esAdmin = perfil?.rol === "admin";
+  
+  // Ambos roles pueden entrar, pero vendedor tiene restricciones
+  if (perfil?.rol !== "admin" && perfil?.rol !== "vendedor") return { error: "Permiso denegado" };
 
   const id = formData.get("id") as string | null;
   const nombre = formData.get("nombre") as string;
   const categoria = formData.get("categoria") as string;
   const precio_venta = parseFloat(formData.get("precio_venta") as string);
   const precio_minimo = parseFloat(formData.get("precio_minimo") as string);
-  const precio_compra = parseFloat(formData.get("precio_compra") as string);
+  const precio_compra_raw = formData.get("precio_compra");
+  const precio_compra = precio_compra_raw ? parseFloat(precio_compra_raw as string) : null;
   const stock_actual = parseInt(formData.get("stock_actual") as string);
   const stock_minimo = parseInt(formData.get("stock_minimo") as string);
 
-  const productData = { 
+  const productData: any = { 
     nombre, 
     categoria, 
     precio_venta, 
-    precio_minimo, 
-    precio_compra, 
     stock_actual, 
     stock_minimo 
   };
+
+  // Solo el admin puede cambiar el costo y el precio mínimo (margen de regateo)
+  if (esAdmin) {
+    if (precio_compra_raw !== null) productData.precio_compra = precio_compra;
+    productData.precio_minimo = precio_minimo;
+  }
 
   if (id) {
     const { error } = await supabase.from("productos").update(productData).eq("id", id);

@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { parseISO, isAfter, isBefore, format, subDays, startOfMonth, startOfWeek } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { Download, PlusCircle, TrendingUp, TrendingDown, DollarSign, Package, ShoppingCart } from "lucide-react";
+import { Download, PlusCircle, TrendingUp, TrendingDown, DollarSign, Package, ShoppingCart, AlertTriangle } from "lucide-react";
 import { ExpensesModal } from "@/components/dashboard/ExpensesModal";
 
 export function DashboardClient({ ventas, detalles, reparaciones, gastos, productos }: any) {
@@ -55,7 +55,8 @@ export function DashboardClient({ ventas, detalles, reparaciones, gastos, produc
   const ticketPromedio = v_ventas.length > 0 ? (totalIngresosVentas / v_ventas.length) : 0;
   
   // Patrimonio no se filtra, es estático
-  const valorInventario = productos.reduce((acc: number, p: any) => acc + (p.stock_actual * p.precio_compra), 0);
+  const valorInventario = productos.reduce((acc: number, p: any) => acc + (p.stock_actual * (p.precio_compra || 0)), 0);
+  const productosSinCosto = productos.filter((p: any) => p.precio_compra === null || p.precio_compra === undefined).length;
 
   // Top Products & ROIs
   const productPerformance: Record<string, { qty: number, revenue: number, cost: number }> = {};
@@ -193,8 +194,16 @@ export function DashboardClient({ ventas, detalles, reparaciones, gastos, produc
             <div className="text-xs font-mono text-[#ff5500]/70 uppercase">Valor Patrimonial</div>
             <Package className="text-[#ff5500] w-5 h-5"/>
           </div>
-          <div className="text-3xl font-mono mt-2 font-bold text-[#ff5500] cyber-glow-orange">
-            ${valorInventario.toFixed(2)}
+          <div className="flex flex-col gap-1 mt-2">
+            <div className="text-3xl font-mono font-bold text-[#ff5500] cyber-glow-orange">
+              ${valorInventario.toFixed(2)}
+            </div>
+            {productosSinCosto > 0 && (
+              <div className="flex items-center gap-1.5 text-[10px] text-red-500 font-mono animate-pulse mt-1">
+                <AlertTriangle className="w-3 h-3" />
+                {productosSinCosto} PRODUCTOS SIN COSTO REGISTRADO
+              </div>
+            )}
           </div>
         </div>
       </div>
