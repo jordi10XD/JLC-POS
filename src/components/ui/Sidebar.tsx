@@ -14,6 +14,7 @@ export function Sidebar({ rol, username }: SidebarProps) {
 
   const links = [
     { name: "POS_Terminal", href: "/pos", icon: TerminalSquare, allowed: ["admin", "vendedor"] },
+    { name: "Registros", href: "/tickets", icon: BarChart3, allowed: ["admin", "vendedor"] },
     { name: "Inventario", href: "/inventario", icon: ShoppingCart, allowed: ["admin", "vendedor"] },
     { name: "Sys_Metrics", href: "/dashboard", icon: BarChart3, allowed: ["admin"] },
   ];

@@ -13,6 +13,7 @@ export function MobileNav({ rol }: MobileNavProps) {
 
   const links = [
     { name: "POS", href: "/pos", icon: TerminalSquare, allowed: ["admin", "vendedor"] },
+    { name: "LOG", href: "/tickets", icon: BarChart3, allowed: ["admin", "vendedor"] },
     { name: "INV", href: "/inventario", icon: ShoppingCart, allowed: ["admin", "vendedor"] },
     { name: "DB", href: "/dashboard", icon: BarChart3, allowed: ["admin"] },
   ];

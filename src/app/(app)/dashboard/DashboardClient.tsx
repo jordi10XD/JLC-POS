@@ -3,16 +3,19 @@
 import { useState, useMemo, useEffect } from "react";
 import { parseISO, isAfter, isBefore, format, subDays, startOfMonth, startOfWeek } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { Download, PlusCircle, TrendingUp, TrendingDown, DollarSign, Package, ShoppingCart, AlertTriangle } from "lucide-react";
+import { Download, PlusCircle, TrendingUp, TrendingDown, DollarSign, Package, ShoppingCart, AlertTriangle, BarChart3, Wrench } from "lucide-react";
 import { ExpensesModal } from "@/components/dashboard/ExpensesModal";
 
 export function DashboardClient({ ventas, detalles, reparaciones, gastos, productos }: any) {
   const [filter, setFilter] = useState("ALL");
+  const [subView, setSubView] = useState<"GLOBAL" | "VENTAS" | "ST">("GLOBAL");
   const [isExpenseOpen, setIsExpenseOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
+    // We add a small delay to ensure the browser has finished the initial layout pass
+    const timer = setTimeout(() => setIsMounted(true), 150);
+    return () => clearTimeout(timer);
   }, []);
 
   // Filtro Maestro
@@ -157,68 +160,173 @@ export function DashboardClient({ ventas, detalles, reparaciones, gastos, produc
           </button>
         </div>
       </div>
-
-      {/* Tarjetas Superiores */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="cyber-panel p-4 rounded-lg border-t-2 border-t-[#00f2fe]">
-          <div className="flex items-center justify-between">
-            <div className="text-xs font-mono text-[#00f2fe]/70 uppercase">Ganancia Neta</div>
-            {gananciaNetaPeriodo >= 0 ? <TrendingUp className="text-[#00f2fe] w-5 h-5"/> : <TrendingDown className="text-red-500 w-5 h-5"/>}
-          </div>
-          <div className={`text-3xl font-mono mt-2 font-bold ${gananciaNetaPeriodo >= 0 ? 'text-white' : 'text-red-400'}`}>
-            ${gananciaNetaPeriodo.toFixed(2)}
-          </div>
-        </div>
-
-        <div className="cyber-panel p-4 rounded-lg border-t-2 border-t-gray-500">
-          <div className="flex items-center justify-between">
-            <div className="text-xs font-mono text-gray-400 uppercase">Ingresos vs Gastos</div>
-            <DollarSign className="text-gray-400 w-5 h-5"/>
-          </div>
-          <div className="text-lg font-mono mt-2 text-white/90">In: ${totalIngresos.toFixed(2)}</div>
-          <div className="text-lg font-mono text-[#ff5500]/80">Out: ${totalGastos.toFixed(2)}</div>
-        </div>
-
-        <div className="cyber-panel p-4 rounded-lg border-t-2 border-t-[#00f2fe]">
-          <div className="flex items-center justify-between">
-            <div className="text-xs font-mono text-[#00f2fe]/70 uppercase">Ticket Promedio</div>
-            <ShoppingCart className="text-[#00f2fe] w-5 h-5"/>
-          </div>
-          <div className="text-3xl font-mono mt-2 font-bold text-white">
-            ${ticketPromedio.toFixed(2)}
-          </div>
-        </div>
-
-        <div className="cyber-panel p-4 rounded-lg border-t-2 border-t-[#ff5500]">
-          <div className="flex items-center justify-between">
-            <div className="text-xs font-mono text-[#ff5500]/70 uppercase">Valor Patrimonial</div>
-            <Package className="text-[#ff5500] w-5 h-5"/>
-          </div>
-          <div className="flex flex-col gap-1 mt-2">
-            <div className="text-3xl font-mono font-bold text-[#ff5500] cyber-glow-orange">
-              ${valorInventario.toFixed(2)}
-            </div>
-            {productosSinCosto > 0 && (
-              <div className="flex items-center gap-1.5 text-[10px] text-red-500 font-mono animate-pulse mt-1">
-                <AlertTriangle className="w-3 h-3" />
-                {productosSinCosto} PRODUCTOS SIN COSTO REGISTRADO
-              </div>
+      
+      {/* Sub-Navigation Tabs */}
+      <div className="flex gap-2 mb-6 border-b border-[#00f2fe]/10 pb-0.5">
+        {[
+          { id: 'GLOBAL', label: 'VISIÓN_GLOBAL', icon: BarChart3 },
+          { id: 'VENTAS', label: 'OPERACIONES_VENTA', icon: ShoppingCart },
+          { id: 'ST', label: 'SERVICIO_TÉCNICO', icon: Wrench }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setSubView(tab.id as any)}
+            className={`flex items-center gap-2 px-6 py-3 font-mono text-xs tracking-widest transition-all relative ${
+              subView === tab.id 
+                ? 'text-[#00f2fe]' 
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            <tab.icon className="w-4 h-4" />
+            {tab.label}
+            {subView === tab.id && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#00f2fe] shadow-[0_0_10px_#00f2fe]" />
             )}
-          </div>
-        </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Tarjetas Dinámicas según SubView */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {subView === "GLOBAL" && (
+          <>
+            <div className="cyber-panel p-4 rounded-lg border-t-2 border-t-[#00f2fe]">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-mono text-[#00f2fe]/70 uppercase">Ganancia Neta</div>
+                {gananciaNetaPeriodo >= 0 ? <TrendingUp className="text-[#00f2fe] w-5 h-5"/> : <TrendingDown className="text-red-500 w-5 h-5"/>}
+              </div>
+              <div className={`text-3xl font-mono mt-2 font-bold ${gananciaNetaPeriodo >= 0 ? 'text-white' : 'text-red-400'}`}>
+                ${gananciaNetaPeriodo.toFixed(2)}
+              </div>
+              <div className="text-[10px] font-mono text-gray-500 mt-1 uppercase">Basado en {v_ventas.length + v_reparaciones.length} transacciones</div>
+            </div>
+
+            <div className="cyber-panel p-4 rounded-lg border-t-2 border-t-gray-500">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-mono text-gray-400 uppercase">Balance In/Out</div>
+                <DollarSign className="text-gray-400 w-5 h-5"/>
+              </div>
+              <div className="text-lg font-mono mt-2 text-white/90">In: ${totalIngresos.toFixed(2)}</div>
+              <div className="text-lg font-mono text-[#ff5500]/80">Out Gastos: ${totalGastos.toFixed(2)} ({v_gastos.length})</div>
+            </div>
+
+            <div className="cyber-panel p-4 rounded-lg border-t-2 border-t-[#00f2fe]">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-mono text-[#00f2fe]/70 uppercase">ROI Promedio</div>
+                <TrendingUp className="text-[#00f2fe] w-5 h-5"/>
+              </div>
+              <div className="text-3xl font-mono mt-2 font-bold text-white">
+                {totalIngresos > 0 ? (((gananciaVentas + gananciaReparaciones) / (costoTotalVentas + costoTotalReparaciones)) * 100 || 0).toFixed(1) : 0}%
+              </div>
+            </div>
+
+            <div className="cyber-panel p-4 rounded-lg border-t-2 border-t-[#ff5500]">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-mono text-[#ff5500]/70 uppercase">Valor Patrimonial</div>
+                <Package className="text-[#ff5500] w-5 h-5"/>
+              </div>
+              <div className="text-3xl font-mono font-bold text-[#ff5500] cyber-glow-orange mt-2">
+                ${valorInventario.toFixed(2)}
+              </div>
+            </div>
+          </>
+        )}
+
+        {subView === "VENTAS" && (
+          <>
+            <div className="cyber-panel p-4 rounded-lg border-t-2 border-t-[#00f2fe]">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-mono text-[#00f2fe]/70 uppercase">Ventas Brutas</div>
+                <ShoppingCart className="text-[#00f2fe] w-5 h-5"/>
+              </div>
+              <div className="text-3xl font-mono mt-2 font-bold text-white">
+                ${totalIngresosVentas.toFixed(2)}
+              </div>
+              <div className="text-[10px] font-mono text-[#00f2fe]/50 mt-1 uppercase">{v_ventas.length} tickets de venta</div>
+            </div>
+
+            <div className="cyber-panel p-4 rounded-lg border-t-2 border-t-gray-500">
+              <div className="text-xs font-mono text-gray-400 uppercase mb-2">Costo vs Ganancia</div>
+              <div className="text-sm font-mono text-red-400">Costo (Mercancía): ${costoTotalVentas.toFixed(2)}</div>
+              <div className="text-lg font-mono text-[#00f2fe] mt-1">Margen: ${gananciaVentas.toFixed(2)}</div>
+            </div>
+
+            <div className="cyber-panel p-4 rounded-lg border-t-2 border-t-[#00f2fe]">
+              <div className="text-xs font-mono text-[#00f2fe]/70 uppercase">Margen Porcentual</div>
+              <div className="text-3xl font-mono mt-2 font-bold text-white">
+                {totalIngresosVentas > 0 ? ((gananciaVentas / totalIngresosVentas) * 100).toFixed(1) : 0}%
+              </div>
+            </div>
+
+            <div className="cyber-panel p-4 rounded-lg border-t-2 border-t-yellow-500">
+              <div className="text-xs font-mono text-yellow-500/70 uppercase">Ticket Promedio</div>
+              <div className="text-3xl font-mono mt-2 font-bold text-white">
+                ${ticketPromedio.toFixed(2)}
+              </div>
+            </div>
+          </>
+        )}
+
+        {subView === "ST" && (
+          <>
+            <div className="cyber-panel p-4 rounded-lg border-t-2 border-t-[#ff5500]">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-mono text-[#ff5500]/70 uppercase">Ingreso Servicios</div>
+                <Wrench className="text-[#ff5500] w-5 h-5"/>
+              </div>
+              <div className="text-3xl font-mono mt-2 font-bold text-white">
+                ${totalIngresosReparaciones.toFixed(2)}
+              </div>
+              <div className="text-[10px] font-mono text-[#ff5500]/50 mt-1 uppercase">{v_reparaciones.length} reparaciones logradas</div>
+            </div>
+
+            <div className="cyber-panel p-4 rounded-lg border-t-2 border-t-gray-500">
+              <div className="text-xs font-mono text-gray-400 uppercase mb-2">Gastos Técnicos</div>
+              <div className="text-sm font-mono text-red-400">Repuestos: ${costoTotalReparaciones.toFixed(2)}</div>
+              <div className="text-lg font-mono text-[#ff5500] mt-1">Utilidad: ${gananciaReparaciones.toFixed(2)}</div>
+            </div>
+
+            <div className="cyber-panel p-4 rounded-lg border-t-2 border-t-[#ff5500]">
+              <div className="text-xs font-mono text-[#ff5500]/70 uppercase">Margen Técnico</div>
+              <div className="text-3xl font-mono mt-2 font-bold text-white">
+                {totalIngresosReparaciones > 0 ? ((gananciaReparaciones / totalIngresosReparaciones) * 100).toFixed(1) : 0}%
+              </div>
+            </div>
+
+            <div className="cyber-panel p-4 rounded-lg border-t-2 border-t-blue-500">
+              <div className="text-xs font-mono text-blue-500/70 uppercase">Reparaciones Hoy</div>
+              <div className="text-3xl font-mono mt-2 font-bold text-white">
+                {v_reparaciones.length}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2 cyber-panel p-4 rounded-lg h-80 flex flex-col">
-          <h3 className="text-sm font-mono text-gray-400 mb-4 uppercase">Balance Operativo del Periodo</h3>
-          <div className="flex-1 w-full min-h-[300px]">
+          <h3 className="text-sm font-mono text-gray-400 mb-4 uppercase">
+            {subView === 'GLOBAL' ? 'Balance Operativo' : (subView === 'VENTAS' ? 'Análisis de Margen Ventas' : 'Utilidad Servicio Técnico')}
+          </h3>
+          <div className="flex-1 w-full min-h-[300px] h-[300px] relative">
             {isMounted && (
-              <ResponsiveContainer width="100%" height="100%" minHeight={300}>
-                <BarChart data={dataBalance} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <ResponsiveContainer width="99.9%" height="100%" key={`main-chart-${subView}`}>
+                <BarChart data={
+                  subView === 'GLOBAL' ? dataBalance :
+                  subView === 'VENTAS' ? [
+                    { name: 'Ventas Brutas', valor: totalIngresosVentas },
+                    { name: 'Costo Artículos', valor: costoTotalVentas },
+                    { name: 'Ganancia', valor: gananciaVentas }
+                  ] : [
+                    { name: 'Ingreso ST', valor: totalIngresosReparaciones },
+                    { name: 'Costo Repuestos', valor: costoTotalReparaciones },
+                    { name: 'Utilidad ST', valor: gananciaReparaciones }
+                  ]
+                } margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <XAxis dataKey="name" stroke="#555" tick={{fill: '#888', fontSize: 12, fontFamily: 'monospace'}} />
                   <YAxis stroke="#555" tick={{fill: '#888', fontSize: 12, fontFamily: 'monospace'}} />
                   <Tooltip cursor={{fill: '#ffffff05'}} contentStyle={{backgroundColor: '#0a0a0a', borderColor: '#00f2fe33', color: '#fff'}} />
-                  <Bar dataKey="valor" fill="#00f2fe" radius={[4,4,0,0]} />
+                  <Bar dataKey="valor" fill={subView === 'ST' ? '#ff5500' : '#00f2fe'} radius={[4,4,0,0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -226,15 +334,18 @@ export function DashboardClient({ ventas, detalles, reparaciones, gastos, produc
         </div>
 
         <div className="cyber-panel p-4 rounded-lg h-80 flex flex-col items-center">
-             <h3 className="text-sm font-mono text-gray-400 mb-4 w-full uppercase">Ganancia Origen (Ventas vs ST)</h3>
-              <div className="flex-1 w-full flex items-center justify-center relative min-h-[250px]">
+             <h3 className="text-sm font-mono text-gray-400 mb-4 w-full uppercase">Composición de Ingresos</h3>
+              <div className="flex-1 w-full flex items-center justify-center relative min-h-[250px] h-[250px]">
                 {gananciaVentas <= 0 && gananciaReparaciones <= 0 ? (
                   <div className="text-gray-600 font-mono text-sm">Sin ganancias positivas</div>
                 ) : isMounted && (
-                  <ResponsiveContainer width="100%" height="100%" minHeight={250}>
+                  <ResponsiveContainer width="99.9%" height="100%" key={`pie-chart-${subView}`}>
                     <PieChart>
                       <Pie
-                        data={dataPie}
+                        data={subView === 'ST' ? [
+                          { name: 'Mano de Obra', value: gananciaReparaciones },
+                          { name: 'Repuestos', value: costoTotalReparaciones }
+                        ] : dataPie}
                         innerRadius={60}
                         outerRadius={80}
                         paddingAngle={5}
@@ -242,7 +353,7 @@ export function DashboardClient({ ventas, detalles, reparaciones, gastos, produc
                         stroke="none"
                       >
                         {dataPie.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                          <Cell key={`cell-${index}`} fill={subView === 'ST' && index === 1 ? '#555' : PIE_COLORS[index % PIE_COLORS.length]} />
                         ))}
                       </Pie>
                       <Tooltip contentStyle={{backgroundColor: '#0a0a0a', borderColor: '#00f2fe33', color: '#fff'}} />
@@ -251,8 +362,17 @@ export function DashboardClient({ ventas, detalles, reparaciones, gastos, produc
                 )}
               </div>
              <div className="flex gap-4 font-mono text-xs w-full justify-center mt-2">
-                <div className="flex items-center gap-1"><div className="w-3 h-3 bg-[#00f2fe]"></div> Ventas</div>
-                <div className="flex items-center gap-1"><div className="w-3 h-3 bg-[#ff5500]"></div> ST</div>
+                {subView === 'ST' ? (
+                  <>
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-[#ff5500]"></div> Mano Obra</div>
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-[#555]"></div> Repuestos</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-[#00f2fe]"></div> Ventas</div>
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-[#ff5500]"></div> ST</div>
+                  </>
+                )}
              </div>
         </div>
       </div>
