@@ -12,8 +12,12 @@ import {
   DollarSign, 
   Package,
   Eye,
-  X
+  X,
+  Edit,
+  Save,
+  Loader2
 } from "lucide-react";
+import { updateRepair } from "@/app/(app)/pos/actions";
 
 interface TicketClientProps {
   ventas: any[];
@@ -27,6 +31,8 @@ export function TicketsClient({ ventas, reparaciones, detalles, productos, perfi
   const [activeTab, setActiveTab] = useState<"VENTAS" | "REPARACIONES">("VENTAS");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSale, setSelectedSale] = useState<any>(null);
+  const [editingRepair, setEditingRepair] = useState<any>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Filter logic
   const filteredVentas = useMemo(() => {
@@ -93,6 +99,96 @@ export function TicketsClient({ ventas, reparaciones, detalles, productos, perfi
           <div className="mt-8 flex justify-end">
              <button onClick={onClose} className="cyber-button px-6 py-2 rounded text-sm uppercase tracking-widest">CERRAR</button>
           </div>
+        </div>
+      </div>
+    );
+  };
+
+  const RepairEditModal = ({ repair, onClose }: { repair: any, onClose: () => void }) => {
+    const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      setIsUpdating(true);
+      const formData = new FormData(e.currentTarget);
+      const result = await updateRepair(repair.id, formData);
+      setIsUpdating(false);
+      if (result.error) {
+        alert("Error: " + result.error);
+      } else {
+        onClose();
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in zoom-in duration-300">
+        <div className="cyber-panel w-full max-w-xl bg-black border-[#ff5500]/30 p-6 rounded-lg relative">
+          <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors">
+            <X className="w-6 h-6" />
+          </button>
+          
+          <h2 className="text-xl font-mono text-[#ff5500] cyber-glow-orange mb-6 uppercase tracking-widest flex items-center gap-2">
+            <Wrench className="w-5 h-5" /> GESTIONAR_ORDEN
+          </h2>
+
+          <form onSubmit={handleUpdate} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1 md:col-span-2">
+              <label className="text-[10px] text-gray-500 font-mono uppercase">Cliente</label>
+              <input type="text" name="cliente" defaultValue={repair.cliente} required className="cyber-input border-[#ff5500]/20 p-2 rounded text-sm w-full" />
+            </div>
+            
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-gray-500 font-mono uppercase">Dispositivo</label>
+              <input type="text" name="dispositivo" defaultValue={repair.dispositivo} required className="cyber-input border-[#ff5500]/20 p-2 rounded text-sm w-full" />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-gray-500 font-mono uppercase">Categoría</label>
+              <input type="text" name="categoria" defaultValue={repair.categoria} required className="cyber-input border-[#ff5500]/20 p-2 rounded text-sm w-full" />
+            </div>
+
+            <div className="flex flex-col gap-1 md:col-span-2">
+              <label className="text-[10px] text-gray-500 font-mono uppercase">Descripción de la Falla</label>
+              <textarea name="descripcion_falla" defaultValue={repair.descripcion_falla} required className="cyber-input border-[#ff5500]/20 p-2 rounded text-sm w-full h-20 resize-none" />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-gray-500 font-mono uppercase">Costo Repuesto ($)</label>
+              <input type="number" step="0.01" name="costo_repuesto" defaultValue={repair.costo_repuesto} required className="cyber-input border-[#ff5500]/20 p-2 rounded text-sm w-full" />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-gray-500 font-mono uppercase text-[#ff5500]">Valor Cobrado ($)</label>
+              <input type="number" step="0.01" name="valor_cobrado" defaultValue={repair.valor_cobrado} required className="cyber-input border-[#ff5500]/40 p-2 rounded text-sm w-full font-bold text-[#ff5500]" />
+            </div>
+
+            <div className="flex flex-col gap-1 md:col-span-2">
+              <label className="text-[10px] text-gray-500 font-mono uppercase text-[#00f2fe]">Estado del Servicio</label>
+              <select name="estado" defaultValue={repair.estado} className="cyber-input border-[#00f2fe]/20 p-2 rounded text-sm w-full bg-black font-mono">
+                <option value="Pendiente">PENDIENTE</option>
+                <option value="Realizado">REALIZADO</option>
+                <option value="Entregado">ENTREGADO</option>
+                <option value="actualizado [pendiente]">ACTUALIZADO [PEND]</option>
+                <option value="actualizado [completado]">ACTUALIZADO [CONF]</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-2 flex justify-end gap-3 mt-4">
+              <button 
+                type="button" 
+                onClick={onClose}
+                className="px-6 py-2 border border-gray-800 text-gray-500 font-mono text-sm hover:text-white transition-colors uppercase"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="submit"
+                disabled={isUpdating}
+                className="cyber-button px-8 py-2 rounded text-sm uppercase tracking-widest flex items-center gap-2"
+              >
+                {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Guardar_Cambios
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     );
@@ -210,6 +306,7 @@ export function TicketsClient({ ventas, reparaciones, detalles, productos, perfi
                   <th className="px-6 py-4">FALLA_REPORTADA</th>
                   <th className="px-6 py-4">ESTADO</th>
                   <th className="px-6 py-4 text-right">COBRADO</th>
+                  <th className="px-6 py-4 text-center">GESTIÓN</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#ff5500]/5 bg-black/20">
@@ -233,15 +330,30 @@ export function TicketsClient({ ventas, reparaciones, detalles, productos, perfi
                        </p>
                     </td>
                     <td className="px-6 py-4">
-                       <span className={`px-2 py-0.5 rounded-[2px] text-[10px] border ${r.estado === 'Entregado' ? 'border-green-500/30 text-green-500' : 'border-yellow-500/30 text-yellow-500 shadow-[0_0_5px_rgba(234,179,8,0.1)]'}`}>
+                       <span className={`px-2 py-0.5 rounded-[2px] text-[10px] border font-mono ${
+                         r.estado === 'Entregado' ? 'border-green-500/30 text-green-500' : 
+                         r.estado === 'Realizado' ? 'border-[#00f2fe]/30 text-[#00f2fe]' :
+                         r.estado === 'actualizado [pendiente]' ? 'border-[#ff5500]/50 text-[#ff5500] animate-pulse' :
+                         r.estado === 'actualizado [completado]' ? 'border-green-400 text-green-400 cyber-glow-cyan' :
+                         'border-yellow-500/30 text-yellow-500 shadow-[0_0_5px_rgba(234,179,8,0.1)]'
+                       }`}>
                         {r.estado.toUpperCase()}
                        </span>
                     </td>
                     <td className="px-6 py-4 text-right">
                        <div className="flex flex-col items-end">
                           <span className="font-bold text-white">${r.valor_cobrado.toFixed(2)}</span>
-                          <span className="text-[9px] text-gray-600">{format(parseISO(r.fecha), "dd/MM/yy")}</span>
+                          <span className="text-[9px] text-gray-600 font-mono">COSTO: ${r.costo_repuesto.toFixed(2)}</span>
                        </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                       <button 
+                        onClick={() => setEditingRepair(r)}
+                        className="p-2 text-[#ff5500] hover:bg-[#ff5500]/20 rounded transition-all opacity-40 group-hover:opacity-100"
+                        title="Gestionar Reparación"
+                       >
+                          <Wrench className="w-4 h-4" />
+                       </button>
                     </td>
                   </tr>
                 ))}
@@ -252,6 +364,7 @@ export function TicketsClient({ ventas, reparaciones, detalles, productos, perfi
       </div>
 
       {selectedSale && <SaleDetailsModal sale={selectedSale} onClose={() => setSelectedSale(null)} />}
+      {editingRepair && <RepairEditModal repair={editingRepair} onClose={() => setEditingRepair(null)} />}
     </div>
   );
 }

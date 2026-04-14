@@ -82,6 +82,17 @@ export function ReparacionesTerminal({ userId }: { userId: string }) {
             </div>
           </div>
 
+          <div className="flex flex-col gap-1 md:col-span-2">
+            <label className="text-xs text-[#ff5500]/70 font-mono tracking-widest uppercase">Estado Inicial</label>
+            <select name="estado" required className="cyber-input border-[#ff5500]/20 focus:border-[#ff5500] p-3 rounded text-sm w-full font-mono bg-black">
+              <option value="Pendiente">PENDIENTE</option>
+              <option value="Realizado">REALIZADO</option>
+              <option value="Entregado">ENTREGADO</option>
+              <option value="actualizado [pendiente]">ACTUALIZADO [PEND]</option>
+              <option value="actualizado [completado]">ACTUALIZADO [CONF]</option>
+            </select>
+          </div>
+
           <div className="md:col-span-2 mt-4 pt-4 border-t border-[#ff5500]/20">
             <button 
               type="submit" 
