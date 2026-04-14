@@ -168,6 +168,8 @@ export function TicketsClient({ ventas, reparaciones, detalles, productos, perfi
                 <option value="Entregado">ENTREGADO</option>
                 <option value="actualizado [pendiente]">ACTUALIZADO [PEND]</option>
                 <option value="actualizado [completado]">ACTUALIZADO [CONF]</option>
+                <option value="Cancelado">CANCELADO</option>
+                <option value="Otros">OTROS</option>
               </select>
             </div>
 
