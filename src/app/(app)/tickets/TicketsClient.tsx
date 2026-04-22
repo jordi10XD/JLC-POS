@@ -15,9 +15,10 @@ import {
   X,
   Edit,
   Save,
-  Loader2
+  Loader2,
+  Trash2
 } from "lucide-react";
-import { updateRepair } from "@/app/(app)/pos/actions";
+import { updateRepair, deleteSale, deleteRepair } from "@/app/(app)/pos/actions";
 
 interface TicketClientProps {
   ventas: any[];
@@ -33,12 +34,14 @@ export function TicketsClient({ ventas, reparaciones, detalles, productos, perfi
   const [selectedSale, setSelectedSale] = useState<any>(null);
   const [editingRepair, setEditingRepair] = useState<any>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Filter logic
   const filteredVentas = useMemo(() => {
     return ventas.filter(v => 
       v.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (v.vendedor?.nombre || "").toLowerCase().includes(searchTerm.toLowerCase())
+      (v.vendedor?.nombre || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (v.a_cargo_de || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [ventas, searchTerm]);
 
@@ -46,9 +49,34 @@ export function TicketsClient({ ventas, reparaciones, detalles, productos, perfi
     return reparaciones.filter(r => 
       r.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.dispositivo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.id.toLowerCase().includes(searchTerm.toLowerCase())
+      r.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (r.a_cargo_de || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [reparaciones, searchTerm]);
+
+  const handleDeleteSale = async (id: string) => {
+    const pwd = window.prompt("Escribe CONFIRMAR para eliminar esta venta (se restaurará el inventario):");
+    if (pwd !== "CONFIRMAR") return;
+    
+    setIsDeleting(true);
+    const result = await deleteSale(id);
+    setIsDeleting(false);
+    if (result?.error) {
+      alert("Error: " + result.error);
+    }
+  };
+
+  const handleDeleteRepair = async (id: string) => {
+    const pwd = window.prompt("Escribe CONFIRMAR para eliminar permanentemente esta reparación:");
+    if (pwd !== "CONFIRMAR") return;
+    
+    setIsDeleting(true);
+    const result = await deleteRepair(id);
+    setIsDeleting(false);
+    if (result?.error) {
+      alert("Error: " + result.error);
+    }
+  };
 
   const SaleDetailsModal = ({ sale, onClose }: { sale: any, onClose: () => void }) => {
     const saleDetalles = detalles.filter(d => d.venta_id === sale.id);
@@ -64,7 +92,8 @@ export function TicketsClient({ ventas, reparaciones, detalles, productos, perfi
             <h2 className="text-xl font-mono text-[#00f2fe] cyber-glow-cyan uppercase tracking-widest">DETALLE_VENTA: {sale.id.slice(0,8)}</h2>
             <div className="grid grid-cols-2 gap-4 mt-4 text-sm font-mono">
               <div className="text-gray-400">FECHA: <span className="text-white">{format(parseISO(sale.fecha), "dd/MM/yyyy HH:mm")}</span></div>
-              <div className="text-gray-400">VENDEDOR: <span className="text-white">{sale.vendedor?.nombre || "Sistema"}</span></div>
+              <div className="text-gray-400">VENDEDOR (SYS): <span className="text-white">{sale.vendedor?.nombre || "Sistema"}</span></div>
+              <div className="text-gray-400">A CARGO DE: <span className="text-[#00f2fe] font-bold">{sale.a_cargo_de || "NR"}</span></div>
               <div className="text-gray-400">MÉTODO: <span className="text-[#ff5500]">{sale.metodo_pago}</span></div>
               <div className="text-gray-400">TOTAL: <span className="text-[#00f2fe]">${sale.total.toFixed(2)}</span></div>
             </div>
@@ -120,7 +149,7 @@ export function TicketsClient({ ventas, reparaciones, detalles, productos, perfi
 
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in zoom-in duration-300">
-        <div className="cyber-panel w-full max-w-xl bg-black border-[#ff5500]/30 p-6 rounded-lg relative">
+        <div className="cyber-panel w-full max-w-xl bg-black border-[#ff5500]/30 p-6 rounded-lg relative overflow-y-auto max-h-screen">
           <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors">
             <X className="w-6 h-6" />
           </button>
@@ -161,6 +190,11 @@ export function TicketsClient({ ventas, reparaciones, detalles, productos, perfi
             </div>
 
             <div className="flex flex-col gap-1 md:col-span-2">
+              <label className="text-[10px] text-gray-500 font-mono uppercase text-[#ff5500] font-bold">A cargo de (Técnico Actual)</label>
+              <input type="text" name="a_cargo_de" defaultValue={repair.a_cargo_de} required className="cyber-input border-[#ff5500]/20 p-2 rounded text-sm w-full" />
+            </div>
+
+            <div className="flex flex-col gap-1 md:col-span-2">
               <label className="text-[10px] text-gray-500 font-mono uppercase text-[#00f2fe]">Estado del Servicio</label>
               <select name="estado" defaultValue={repair.estado} className="cyber-input border-[#00f2fe]/20 p-2 rounded text-sm w-full bg-black font-mono">
                 <option value="Pendiente">PENDIENTE</option>
@@ -197,7 +231,16 @@ export function TicketsClient({ ventas, reparaciones, detalles, productos, perfi
   };
 
   return (
-    <div className="flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+    <div className="flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10 relative">
+      {isDeleting && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="w-10 h-10 text-red-500 animate-spin" />
+            <p className="font-mono text-red-500 uppercase tracking-widest cyber-glow-orange">Eliminando y Restaurando...</p>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row items-center justify-between border-b border-[#00f2fe]/20 pb-4 mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-mono cyber-glow-cyan text-[#00f2fe]">LOG_DATABASE</h1>
@@ -239,16 +282,15 @@ export function TicketsClient({ ventas, reparaciones, detalles, productos, perfi
               <thead className="bg-black/80 text-[#00f2fe]/70 uppercase text-[10px] tracking-widest border-b border-[#00f2fe]/10">
                 <tr>
                   <th className="px-6 py-4">DESCRIPCIÓN_VENTA</th>
-                  <th className="px-6 py-4">VENDEDOR</th>
+                  <th className="px-6 py-4">Responsable</th>
                   <th className="px-6 py-4">FECHA_HORA</th>
-                  <th className="px-6 py-4">MÉTODO</th>
                   <th className="px-6 py-4 text-right">TOTAL</th>
-                  <th className="px-6 py-4 text-center">DETALLES</th>
+                  <th className="px-6 py-4 text-center">ACCIONES</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#00f2fe]/5 bg-black/20">
                 {filteredVentas.length === 0 && (
-                  <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-600 italic uppercase">No records found</td></tr>
+                  <tr><td colSpan={5} className="px-6 py-10 text-center text-gray-600 italic uppercase">No records found</td></tr>
                 )}
                 {filteredVentas.map(v => {
                   const saleDetalles = detalles.filter(d => d.venta_id === v.id);
@@ -267,9 +309,15 @@ export function TicketsClient({ ventas, reparaciones, detalles, productos, perfi
                             <span className="text-[9px] text-gray-600 font-mono">HASH: {v.id.slice(0,8)}</span>
                          </div>
                       </td>
-                      <td className="px-6 py-4 flex items-center gap-2">
-                         <User className="w-3 h-3 text-[#00f2fe]/50" />
-                         <span className="text-gray-400">{v.vendedor?.nombre || "N/A"}</span>
+                      <td className="px-6 py-4 flex flex-col gap-1">
+                         <div className="flex items-center gap-1">
+                           <User className="w-3 h-3 text-[#00f2fe] drop-shadow-[0_0_5px_rgba(0,242,254,0.8)]" />
+                           <span className="text-[#00f2fe] font-bold text-[11px]">{v.a_cargo_de || "NR"}</span>
+                         </div>
+                         <div className="flex items-center gap-1">
+                           <User className="w-3 h-3 text-gray-600" />
+                           <span className="text-gray-500 text-[10px]">sys: {v.vendedor?.nombre || "N/A"}</span>
+                         </div>
                       </td>
                       <td className="px-6 py-4 text-gray-400 text-xs">
                          <div className="flex flex-col">
@@ -277,20 +325,24 @@ export function TicketsClient({ ventas, reparaciones, detalles, productos, perfi
                             <span className="text-[10px] opacity-50">{format(parseISO(v.fecha), "HH:mm")}</span>
                          </div>
                       </td>
-                      <td className="px-6 py-4">
-                         <span className={`px-2 py-0.5 rounded-[2px] text-[10px] border ${v.metodo_pago === 'Efectivo' ? 'border-[#00f2fe]/30 text-[#00f2fe]' : 'border-[#ff5500]/30 text-[#ff5500]'}`}>
-                          {v.metodo_pago.toUpperCase()}
-                         </span>
-                      </td>
                       <td className="px-6 py-4 text-right font-bold text-white">${v.total.toFixed(2)}</td>
-                      <td className="px-6 py-4 text-center">
-                         <button 
-                          onClick={() => setSelectedSale(v)}
-                          className="p-2 text-[#00f2fe] hover:bg-[#00f2fe]/20 rounded transition-all opacity-40 group-hover:opacity-100"
-                          title="Explorar Detalle"
-                         >
-                            <Eye className="w-4 h-4" />
-                         </button>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-center gap-2">
+                           <button 
+                            onClick={() => setSelectedSale(v)}
+                            className="p-2 text-[#00f2fe] hover:bg-[#00f2fe]/20 rounded transition-all opacity-40 group-hover:opacity-100 border border-transparent hover:border-[#00f2fe]/30"
+                            title="Explorar Detalle"
+                           >
+                              <Eye className="w-4 h-4" />
+                           </button>
+                           <button 
+                            onClick={() => handleDeleteSale(v.id)}
+                            className="p-2 text-red-500 hover:bg-red-500/20 rounded transition-all opacity-40 group-hover:opacity-100 border border-transparent hover:border-red-500/30"
+                            title="Eliminar Venta PERMANENTEMENTE"
+                           >
+                              <Trash2 className="w-4 h-4" />
+                           </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -304,27 +356,27 @@ export function TicketsClient({ ventas, reparaciones, detalles, productos, perfi
               <thead className="bg-black/80 text-[#ff5500]/70 uppercase text-[10px] tracking-widest border-b border-[#ff5500]/10">
                 <tr>
                   <th className="px-6 py-4">CLIENTE / DISPOSITIVO</th>
-                  <th className="px-6 py-4">CATEGORÍA</th>
+                  <th className="px-6 py-4">TÉCNICO</th>
                   <th className="px-6 py-4">FALLA_REPORTADA</th>
                   <th className="px-6 py-4">ESTADO</th>
-                  <th className="px-6 py-4 text-right">COBRADO</th>
+                  <th className="px-6 py-4 text-right">COBRADO / COSTO</th>
                   <th className="px-6 py-4 text-center">GESTIÓN</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#ff5500]/5 bg-black/20">
                 {filteredReparaciones.length === 0 && (
-                  <tr><td colSpan={5} className="px-6 py-10 text-center text-gray-600 italic uppercase">No records found</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-600 italic uppercase">No records found</td></tr>
                 )}
                 {filteredReparaciones.map(r => (
                   <tr key={r.id} className="hover:bg-[#ff5500]/5 transition-colors group">
                     <td className="px-6 py-4">
                        <div className="flex flex-col">
                           <span className="text-white font-bold uppercase">{r.cliente}</span>
-                          <span className="text-[10px] text-gray-500 font-mono">{r.dispositivo}</span>
+                          <span className="text-[10px] text-[#ff5500]/80 font-mono">{r.dispositivo}</span>
                        </div>
                     </td>
                     <td className="px-6 py-4">
-                       <span className="text-[#ff5500]/70 text-xs font-mono">{r.categoria || "N/A"}</span>
+                       <span className="text-[#ff5500] font-bold text-xs">{r.a_cargo_de || "NR"}</span>
                     </td>
                     <td className="px-6 py-4">
                        <p className="text-gray-400 text-xs truncate max-w-[200px]" title={r.descripcion_falla}>
@@ -337,7 +389,7 @@ export function TicketsClient({ ventas, reparaciones, detalles, productos, perfi
                          r.estado === 'Realizado' ? 'border-[#00f2fe]/30 text-[#00f2fe]' :
                          r.estado === 'actualizado [pendiente]' ? 'border-[#ff5500]/50 text-[#ff5500] animate-pulse' :
                          r.estado === 'actualizado [completado]' ? 'border-green-400 text-green-400 cyber-glow-cyan' :
-                         'border-yellow-500/30 text-yellow-500 shadow-[0_0_5px_rgba(234,179,8,0.1)]'
+                         'border-yellow-500/30 text-yellow-500'
                        }`}>
                         {r.estado.toUpperCase()}
                        </span>
@@ -345,17 +397,26 @@ export function TicketsClient({ ventas, reparaciones, detalles, productos, perfi
                     <td className="px-6 py-4 text-right">
                        <div className="flex flex-col items-end">
                           <span className="font-bold text-white">${r.valor_cobrado.toFixed(2)}</span>
-                          <span className="text-[9px] text-gray-600 font-mono">COSTO: ${r.costo_repuesto.toFixed(2)}</span>
+                          <span className="text-[9px] text-[#ff5500]/50 font-mono">COSTO: ${r.costo_repuesto.toFixed(2)}</span>
                        </div>
                     </td>
                     <td className="px-6 py-4 text-center">
-                       <button 
-                        onClick={() => setEditingRepair(r)}
-                        className="p-2 text-[#ff5500] hover:bg-[#ff5500]/20 rounded transition-all opacity-40 group-hover:opacity-100"
-                        title="Gestionar Reparación"
-                       >
-                          <Wrench className="w-4 h-4" />
-                       </button>
+                      <div className="flex items-center justify-center gap-2">
+                         <button 
+                          onClick={() => setEditingRepair(r)}
+                          className="p-2 text-[#ff5500] hover:bg-[#ff5500]/20 rounded transition-all opacity-40 group-hover:opacity-100 border border-transparent hover:border-[#ff5500]/30"
+                          title="Gestionar Reparación"
+                         >
+                            <Wrench className="w-4 h-4" />
+                         </button>
+                         <button 
+                          onClick={() => handleDeleteRepair(r.id)}
+                          className="p-2 text-red-500 hover:bg-red-500/20 rounded transition-all opacity-40 group-hover:opacity-100 border border-transparent hover:border-red-500/30"
+                          title="Eliminar Reparación PERMANENTEMENTE"
+                         >
+                            <Trash2 className="w-4 h-4" />
+                         </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

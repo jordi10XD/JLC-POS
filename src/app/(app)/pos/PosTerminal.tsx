@@ -8,8 +8,9 @@ import { ReparacionesTerminal } from "./ReparacionesTerminal";
 interface Product {
   id: string;
   nombre: string;
+  categoria: string;
   precio_venta: number;
-  precio_minimo: number;
+  precio_minimo?: number;
   stock_actual: number;
   stock_minimo: number;
 }
@@ -17,11 +18,17 @@ interface Product {
 export function PosTerminal({ 
   products, 
   userId, 
-  userRole 
+  userRole,
+  userName,
+  sugerencias,
+  currentUserProfile
 }: { 
   products: Product[], 
   userId: string, 
-  userRole: string 
+  userRole: string,
+  userName: string,
+  sugerencias: string[],
+  currentUserProfile: any
 }) {
   const [activeTab, setActiveTab] = useState<"VENTAS" | "REPARACIONES">("VENTAS");
 
@@ -52,10 +59,10 @@ export function PosTerminal({
 
       <div className="flex-1 cyber-panel rounded-lg rounded-tl-none relative">
         {activeTab === "VENTAS" && (
-          <VentasTerminal products={products} userId={userId} />
+          <VentasTerminal products={products} userId={userId} userName={userName} sugerencias={sugerencias} currentUserProfile={currentUserProfile} />
         )}
         {activeTab === "REPARACIONES" && (
-          <ReparacionesTerminal userId={userId} />
+          <ReparacionesTerminal userId={userId} userRole={userRole} userName={userName} sugerencias={sugerencias} />
         )}
       </div>
     </div>

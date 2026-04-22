@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { ProductForm } from "@/components/inventario/ProductForm";
-import { Plus, Edit2, AlertTriangle, PackageSearch } from "lucide-react";
+import { Plus, Edit2, AlertTriangle, PackageSearch, Trash2 } from "lucide-react";
+import { deleteProduct } from "./actions";
 
 interface Product {
   id: string;
@@ -34,6 +35,14 @@ export function InventoryClient({
     const matchCat = filterCategory === "ALL" || p.categoria === filterCategory;
     return matchSearch && matchCat;
   });
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar el producto "${name}"? Esta acción no se puede deshacer.`)) return;
+    const res = await deleteProduct(id);
+    if (res?.error) {
+      alert("Error: " + res.error);
+    }
+  };
 
   return (
     <div className="flex flex-col cyber-panel p-6 rounded-lg opacity-90 animate-in fade-in duration-500 relative">
@@ -113,9 +122,15 @@ export function InventoryClient({
                   <td className="p-4 text-center">
                     <button 
                       onClick={() => { setEditingProduct(p); setIsFormOpen(true); }}
-                      className="text-[#00f2fe]/60 hover:text-[#00f2fe] transition-colors"
+                      className="text-[#00f2fe]/60 hover:text-[#00f2fe] transition-colors mr-3"
                     >
                       <Edit2 className="w-4 h-4 inline" />
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(p.id, p.nombre)}
+                      className="text-red-500/60 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4 inline" />
                     </button>
                   </td>
                 </tr>
@@ -168,12 +183,20 @@ export function InventoryClient({
                   )}
                 </div>
 
-                <button 
-                  onClick={() => { setEditingProduct(p); setIsFormOpen(true); }}
-                  className="absolute bottom-4 right-4 text-[#00f2fe]/60 hover:text-[#00f2fe] p-2"
-                >
-                  <Edit2 className="w-5 h-5 line" />
-                </button>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => { setEditingProduct(p); setIsFormOpen(true); }}
+                    className="mt-3 flex-1 flex items-center justify-center gap-2 border border-[#00f2fe]/20 text-[#00f2fe]/60 hover:text-[#00f2fe] hover:border-[#00f2fe] p-2 rounded hover:bg-[#00f2fe]/10 transition-colors bg-black/20"
+                  >
+                    <Edit2 className="w-4 h-4" /> <span className="font-mono text-sm uppercase">Editar</span>
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(p.id, p.nombre)}
+                    className="mt-3 flex-1 flex items-center justify-center gap-2 border border-red-500/20 text-red-500/60 hover:text-red-500 hover:border-red-500 p-2 rounded hover:bg-red-500/10 transition-colors bg-black/20"
+                  >
+                    <Trash2 className="w-4 h-4" /> <span className="font-mono text-sm uppercase">Eliminar</span>
+                  </button>
+                </div>
               </div>
             );
           })}

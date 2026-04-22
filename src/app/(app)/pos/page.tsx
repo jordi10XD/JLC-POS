@@ -8,7 +8,6 @@ export default async function POSPage() {
 
   if (!user) redirect("/login");
 
-  // Fetch the role
   const { data: perfil } = await supabase
     .from("perfiles")
     .select("rol, nombre")
@@ -16,9 +15,8 @@ export default async function POSPage() {
     .single();
 
   const rol = perfil?.rol || "vendedor";
+  const userName = perfil?.nombre || "";
 
-  // Fetch products safely using the view for vendors (which admins can also read)
-  // Actually, either 'productos' or 'v_productos_vendedores' is fine.
   const targetTable = "v_productos_vendedores"; 
   
   const { data: productsData } = await supabase
@@ -26,12 +24,22 @@ export default async function POSPage() {
     .select("*")
     .order("nombre", { ascending: true });
 
+  const { data: sugerenciasData } = await supabase
+    .from("sugerencias_empleados")
+    .select("nombre")
+    .order("nombre");
+
+  const sugerencias = sugerenciasData?.map(d => d.nombre) || [];
+
   return (
     <div className="h-full flex flex-col pointer-events-auto">
       <PosTerminal 
         products={productsData || []} 
         userId={user.id} 
         userRole={rol} 
+        userName={userName}
+        sugerencias={sugerencias}
+        currentUserProfile={perfil}
       />
     </div>
   );

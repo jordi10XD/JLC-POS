@@ -1,55 +1,66 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
-import { Wrench } from "lucide-react";
-import { createRepair } from "@/app/(app)/pos/actions";
+import { useRef, useState } from "react";
+import { createRepair } from "./actions";
+import { CheckCircle2, Wrench, RefreshCw, Loader2 } from "lucide-react";
 
-export function ReparacionesTerminal({ userId }: { userId: string }) {
-  const [state, formAction, isPending] = useActionState(
-    async (prevState: any, formData: FormData) => await createRepair(userId, formData),
-    null
-  );
+export function ReparacionesTerminal({ 
+  userId, 
+  userRole,
+  userName,
+  sugerencias
+}: { 
+  userId: string, 
+  userRole: string,
+  userName: string,
+  sugerencias: string[]
+}) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [fecha, setFecha] = useState(() => {
+    const d = new Date();
+    const offset = d.getTimezoneOffset() * 60000;
+    return (new Date(d.getTime() - offset)).toISOString().slice(0, 16);
+  });
 
-  useEffect(() => {
-    if (state?.success) {
-      if (document.getElementById("repair-form")) {
-        (document.getElementById("repair-form") as HTMLFormElement).reset();
-      }
-      alert("Repair module logged successfully.");
+  const formAction = async (formData: FormData) => {
+    setStatus("loading");
+    setErrorMsg("");
+    
+    const result = await createRepair(userId, formData);
+    
+    if (result.error) {
+      setStatus("error");
+      setErrorMsg(result.error);
+    } else {
+      setStatus("success");
+      formRef.current?.reset();
+      
+      const d = new Date();
+      const offset = d.getTimezoneOffset() * 60000;
+      setFecha((new Date(d.getTime() - offset)).toISOString().slice(0, 16));
+      
+      setTimeout(() => setStatus("idle"), 3000);
     }
-  }, [state]);
+  };
 
   return (
-    <div className="flex flex-col p-4 lg:p-6 relative">
-      <div className="max-w-2xl mx-auto w-full">
-        <div className="flex items-center gap-3 mb-6 border-b border-[#ff5500]/20 pb-4">
-          <Wrench className="w-6 h-6 text-[#ff5500]" />
-          <div>
-            <h2 className="text-[#ff5500] font-mono text-xl cyber-glow-orange tracking-widest uppercase">
-              Orden_Reparaciones
-            </h2>
-            <p className="text-[#ff5500]/60 text-xs font-mono">Registro de servicio técnico independiente.</p>
-          </div>
-        </div>
-
-        {state?.success && (
-          <div className="bg-[#ff5500]/10 border border-[#ff5500]/40 text-[#ff5500] p-4 rounded mb-6 font-mono text-sm text-center cyber-glow-orange">
-            NUEVA ORDEN DE REPARACIÓN INGRESADA
-          </div>
+    <div className="flex flex-col lg:flex-row h-full">
+      <div className="w-full lg:w-2/3 p-4 lg:p-8 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-[#ff5500]/20 min-h-[500px]">
+        {status === "success" && (
+           <div className="bg-[#ff5500]/10 border border-[#ff5500]/40 text-[#ff5500] p-4 rounded mb-6 font-mono text-sm text-center cyber-glow-orange">
+             <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-80" />
+             REPARACIÓN INGRESADA CON ÉXITO
+           </div>
         )}
-
-        {state?.error && (
-          <div className="bg-red-950/20 border border-red-500/40 text-red-500 p-4 rounded mb-6 font-mono text-sm text-center">
-            SYSTEM_ERROR: {state.error}
-          </div>
-        )}
-
-        <form id="repair-form" action={formAction} className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-black/40 border border-[#ff5500]/10 p-6 rounded-lg">
-          <div className="flex flex-col gap-1 md:col-span-2">
+        
+        <form id="repair-form" action={formAction} className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-black/40 border border-[#ff5500]/10 p-4 lg:p-6 rounded-lg overflow-y-auto">
+          <div className="flex flex-col gap-1">
             <label className="text-xs text-[#ff5500]/70 font-mono tracking-widest uppercase">Cliente</label>
             <input type="text" name="cliente" required className="cyber-input border-[#ff5500]/20 focus:border-[#ff5500] p-3 rounded text-sm w-full" placeholder="Nombre / Teléfono" />
           </div>
-
+          
           <div className="flex flex-col gap-1">
             <label className="text-xs text-[#ff5500]/70 font-mono tracking-widest uppercase">Dispositivo</label>
             <input type="text" name="dispositivo" required className="cyber-input border-[#ff5500]/20 focus:border-[#ff5500] p-3 rounded text-sm" placeholder="Ej. Samsung S24 Ultra" />
@@ -71,7 +82,7 @@ export function ReparacionesTerminal({ userId }: { userId: string }) {
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#ff5500]/50 font-mono">$</span>
               <input type="number" step="0.01" name="costo_repuesto" defaultValue="0" required className="cyber-input border-[#ff5500]/20 focus:border-[#ff5500] p-3 pl-8 rounded text-sm w-full" />
             </div>
-            <p className="text-[10px] text-gray-500 mt-1">Puede ser $0 inicialmente.</p>
+            <p className="text-[10px] text-gray-500 mt-1 font-mono italic">Puede ser $0 inicialmente.</p>
           </div>
 
           <div className="flex flex-col gap-1">
@@ -95,16 +106,47 @@ export function ReparacionesTerminal({ userId }: { userId: string }) {
             </select>
           </div>
 
+          <div className="flex flex-col gap-1 md:col-span-2 lg:col-span-1">
+            <label className="text-xs text-[#ff5500]/70 font-mono tracking-widest uppercase p-1">Fecha de Ingreso</label>
+            <input type="datetime-local" name="fecha" value={fecha} onChange={e => setFecha(e.target.value)} required className="cyber-input border-[#ff5500]/20 focus:border-[#ff5500] p-3 rounded text-sm w-full" />
+          </div>
+
+          <div className="flex flex-col gap-1 md:col-span-2 lg:col-span-1">
+            <label className="text-xs text-[#ff5500]/70 font-mono tracking-widest uppercase font-bold">Técnico / Responsable (Free Text)</label>
+            <input 
+              list="tecnicos-list"
+              type="text" 
+              name="a_cargo_de" 
+              defaultValue={userName}
+              required 
+              className="cyber-input border-[#ff5500]/20 focus:border-[#ff5500] p-3 rounded text-sm w-full font-mono" 
+              placeholder="Ingresa nombre del técnico" 
+              autoComplete="off"
+            />
+            <datalist id="tecnicos-list">
+              {sugerencias.map(s => <option key={s} value={s} />)}
+            </datalist>
+          </div>
+
           <div className="md:col-span-2 mt-4 pt-4 border-t border-[#ff5500]/20">
+            {errorMsg && <p className="text-red-500 font-mono text-xs mb-3 text-center">{errorMsg}</p>}
             <button 
               type="submit" 
-              disabled={isPending}
+              disabled={status === "loading"}
               className="w-full bg-[#ff5500]/10 border border-[#ff5500]/40 text-[#ff5500] hover:bg-[#ff5500]/20 transition-all font-mono font-bold tracking-widest py-4 rounded text-sm disabled:opacity-50"
             >
-              {isPending ? "EMITIENDO..." : "GENERAR O.T."}
+              {status === "loading" ? "PROCESANDO..." : "REGISTRAR ORDEN DE SERVICIO"}
             </button>
           </div>
         </form>
+      </div>
+
+      <div className="w-full lg:w-1/3 p-4 lg:p-8 flex flex-col items-center justify-center bg-black/60">
+        <Wrench className="w-24 h-24 text-[#ff5500]/10 mb-6" />
+        <h3 className="font-mono text-[#ff5500] text-xl tracking-widest cyber-glow-orange mb-2">SERVICE_LOG</h3>
+        <p className="text-gray-500 text-sm text-center font-mono max-w-[250px] leading-relaxed">
+          Ingresa descripciones detalladas de fallas para evitar ambigüedades. Las órdenes ingresarán como PENDIENTE por defecto.
+        </p>
       </div>
     </div>
   );
